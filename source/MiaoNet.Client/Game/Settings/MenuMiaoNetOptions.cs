@@ -176,7 +176,7 @@ public static class MenuMiaoNetOptions
         uiSubMenu.Add(item);
 
         item = new TextMenuExt.IntSlider(
-            Dialog.Get("miaonet_options_chat_message_padding"), 0, 8, settings.ChatUIScale    
+            Dialog.Get("miaonet_options_chat_message_padding"), 0, 8, settings.ChatMessagePadding
         ).Change(v => settings.ChatMessagePadding = v);
         uiSubMenu.Add(item);
         
@@ -240,7 +240,7 @@ public static class MenuMiaoNetOptions
         menu.Add(item);
 
         item = new TextMenuExt.IntSlider(
-            Dialog.Get("miaonet_options_self_name_opactiy"), 1, 10, settings.SelfNameOpacity
+            Dialog.Get("miaonet_options_self_name_opacity"), 1, 10, settings.SelfNameOpacity
         ).Change(v => settings.SelfNameOpacity = v);
         menu.Add(item);
 
@@ -255,15 +255,18 @@ public static class MenuMiaoNetOptions
         menu.Add(item);
 
         {
-            TextMenuExt.IntSlider minPlayerOpacitySlider;
-            minPlayerOpacitySlider = new TextMenuExt.IntSlider(
+            var minPlayerOpacitySlider = new TextMenuExt.IntSlider(
                 Dialog.Get("miaonet_options_min_player_opacity_multiplier"), 0, 9, settings.MinPlayerOpacityMultiplier
             ).Change(v => settings.MinPlayerOpacityMultiplier = v);
-            minPlayerOpacitySlider.Visible = settings.DistanceBasedOpacity;
+            minPlayerOpacitySlider.Disabled = !settings.DistanceBasedOpacity;
 
             item = new TextMenu.OnOff(
                 Dialog.Get("miaonet_options_distance_based_opacity"), settings.DistanceBasedOpacity
-            ).Change(v => settings.DistanceBasedOpacity = minPlayerOpacitySlider.Visible = v);
+            ).Change(v =>
+            {
+                settings.DistanceBasedOpacity = v;
+                minPlayerOpacitySlider.Disabled = !v;
+            });
             menu.Add(item);
             menu.Add(minPlayerOpacitySlider);
         }
