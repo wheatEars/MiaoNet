@@ -91,7 +91,7 @@ public sealed partial class MainComponent : MiaoNetComponent
             var previousGlobalFlags = self.GlobalFlags;
             var globalFlags = previousGlobalFlags;
             globalFlags = WithFlag(globalFlags, PlayerGlobalFlags.Paused, Engine.Scene.Paused);
-            globalFlags = WithFlag(globalFlags, PlayerGlobalFlags.Typing, context.ChatComponent.Active);
+                globalFlags = WithFlag(globalFlags, PlayerGlobalFlags.Typing, context.UIComponent.Active);
             globalFlags = WithFlag(globalFlags, PlayerGlobalFlags.LiveMode, settings.LiveMode);
             globalFlags = WithFlag(globalFlags, PlayerGlobalFlags.Interactions, settings.PlayerInteractions);
             globalFlags = WithFlag(globalFlags, PlayerGlobalFlags.GroupPhotoMode, settings.GroupPhotoMode);

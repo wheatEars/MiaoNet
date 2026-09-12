@@ -319,7 +319,7 @@ public sealed class MiaoNetModule : EverestModule
         cur.EmitDelegate(static () =>
         {
             var ctx = Instance.miaoNetContext;
-            if (ctx is not null && ctx.ChatComponent.Active)
+            if (ctx is not null && ctx.UIComponent.Active)
                 Engine.Commands.Open = false;
         });
     }

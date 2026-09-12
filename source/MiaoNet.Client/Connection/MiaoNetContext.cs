@@ -85,10 +85,13 @@ public sealed partial class MiaoNetContext : IPacketSerializationContext
     public ClientState? ClientState => clientState;
 
     public MainComponent MainComponent { get; }
+    public PlayerListComponent PlayerListComponent { get; }
 
     public EmoteComponent EmoteComponent { get; }
 
     public ChatComponent ChatComponent { get; }
+
+    public UIComponent UIComponent { get; }
 
     public StatusComponent StatusComponent { get; }
 
@@ -102,12 +105,13 @@ public sealed partial class MiaoNetContext : IPacketSerializationContext
         connectionLifecycle = new();
 
         var main = MainComponent = new MainComponent(this);
-        var pl = new PlayerListComponent(this);
+        var pl = PlayerListComponent = new PlayerListComponent(this);
         var chat = ChatComponent = new ChatComponent(this);
+        var ui = UIComponent = new UIComponent(this);
         var dm = new DebugMapComponent(this);
         var em = EmoteComponent = new EmoteComponent(this);
-        components = [main, pl, chat, dm, em];
-        renderableComponents = [dm, chat, pl];
+        components = [main, pl, chat, ui, dm, em];
+        renderableComponents = [dm];
 
         StatusComponent = new(this);
         PacketHandlerRegister r = new();
@@ -416,12 +420,16 @@ public sealed partial class MiaoNetContext : IPacketSerializationContext
 
     public void Render()
     {
+        bool renderUi = false;
         BeginRender();
         try
         {
             if (HasConnection)
+            {
                 renderableComponents.ForEach(c => c.Render());
+            }
             StatusComponent.Render();
+            renderUi = HasConnection;
         }
         catch (Exception e)
         {
@@ -432,6 +440,23 @@ public sealed partial class MiaoNetContext : IPacketSerializationContext
         finally
         {
             EndRender();
+        }
+
+        // UIHelper owns its own SpriteBatch and must render after the legacy
+        // batch above has ended. Keeping this outside the renderable list also
+        // prevents nested SpriteBatch.Begin calls.
+        if (renderUi)
+        {
+            try
+            {
+                UIComponent.Render();
+            }
+            catch (Exception e)
+            {
+                Logger.Error(LT.MiaoNet, "Exception occurred during UI rendering!");
+                Logger.LogDetailed(e, LT.MiaoNet);
+                DisconnectByException(e);
+            }
         }
     }
 

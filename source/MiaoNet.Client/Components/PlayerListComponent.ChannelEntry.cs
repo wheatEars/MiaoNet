@@ -5,11 +5,11 @@ namespace Celeste.Mod.MiaoNet;
 
 public sealed partial class PlayerListComponent
 {
-    private sealed class PlayerListChannelEntry
+    public sealed class PlayerListChannelEntry
     {
-        public readonly OnlineChannel Channel;
-        public readonly List<PlayerListEntry> Players;
-        public string Header;
+        public OnlineChannel Channel { get; }
+        public List<PlayerListEntry> Players { get; }
+        public string Header { get; private set; }
 
         public PlayerListChannelEntry(OnlineChannel channel, List<PlayerListEntry> players)
         {

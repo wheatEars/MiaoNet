@@ -30,6 +30,10 @@
   <ItemGroup>
     <EmbeddedResource Include="ClientRC/success.html" LogicalName="ClientRC.success.html" />
   </ItemGroup>
+    
+  <ItemGroup>
+    <CelesteModReference Include="UIHelper" />
+  </ItemGroup>
 
   <Import Project="CelesteMod.targets" />
 </Project>

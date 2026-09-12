@@ -10,6 +10,20 @@ namespace Celeste.Mod.MiaoNet;
 public sealed partial class PlayerListComponent : MiaoNetComponent
 {
     public bool Active { get; set; }
+    public IReadOnlyList<PlayerListChannelEntry> Channels => channelPlayerList;
+    public event Action? Changed;
+
+    // Presentation assets exposed to the UI layer. The interaction state is
+    // represented by its original texture, never by an "I" text marker.
+    public MTexture PausedStatusIcon => texPlayerPaused;
+    public MTexture InteractionsStatusIcon => texPlayerInteractions;
+    public MTexture LiveStatusIcon => texLiveMode;
+    public MTexture TakingGoldenStatusIcon => texTakingGolden;
+    public MTexture GroupPhotoStatusIcon => texGroupPhotoMode;
+    public MTexture DebugMapIcon => texPlayerDebugMap;
+
+    public bool IsSelf(OnlinePlayer player)
+        => HasState && ReferenceEquals(ClientState.Self, player);
 
     private readonly PlayerListEntryComparer pComparer;
     private readonly List<PlayerListChannelEntry> channelPlayerList;
@@ -121,6 +135,7 @@ public sealed partial class PlayerListComponent : MiaoNetComponent
             new(pv, pvChannelPlayerList)
         ]);
         SortPlayerList();
+        Changed?.Invoke();
         return;
 
         PlayerListEntry CreateTestPlayer(OnlineChannel channel, string name, string sid, string room)
@@ -172,6 +187,7 @@ public sealed partial class PlayerListComponent : MiaoNetComponent
             channelPlayerList.Add(privateChannelEntry);
         }
 #endif
+        Changed?.Invoke();
     }
 
     private void Context_PingDataReceived()
@@ -179,6 +195,7 @@ public sealed partial class PlayerListComponent : MiaoNetComponent
         foreach (var channel in channelPlayerList)
             foreach (var item in channel.Players)
                 item.UpdatePing();
+        Changed?.Invoke();
     }
 
     private void UpdatePlayer(OnlinePlayer player)
@@ -190,6 +207,7 @@ public sealed partial class PlayerListComponent : MiaoNetComponent
         var item = channel!.Players.Find(i => i.Player == player);
         item!.Update(ClipType);
         SortPlayerList();
+        Changed?.Invoke();
         return;
     }
 
@@ -213,62 +231,12 @@ public sealed partial class PlayerListComponent : MiaoNetComponent
         Active = false;
         scroll = 0f;
         channelPlayerList.Clear();
+        Changed?.Invoke();
     }
 
     public override void Update()
     {
-        var settings = MiaoNetModule.Settings;
-        bool wantsTo;
-        if (settings.PlayerListButtonMode == ButtonMode.Press)
-        {
-            if (settings.PlayerListButton.Pressed)
-            {
-                settings.PlayerListButton.ConsumePress();
-                wantsTo = !Active;
-            }
-            else
-            {
-                wantsTo = Active;
-            }
-        }
-        else
-        {
-            wantsTo = settings.PlayerListButton.Check;
-        }
-        if (Active != wantsTo)
-        {
-            if (wantsTo)
-            {
-                if (context.IsSuitableToOpenUI)
-                {
-                    Active = true;
-                    context.HasComponentFocus = true;
-                }
-            }
-            else
-            {
-                Active = false;
-                context.HasComponentFocus = false;
-                scrollTarget = 0f;
-                scroll = 0f;
-            }
-        }
-
-        if (Active)
-        {
-            pausedTexFloatTimer += Engine.RawDeltaTime * 2f;
-            pausedTexFloatTimer = Calc.WrapAngle(pausedTexFloatTimer);
-            pausedTexOffset = MathF.Sin(pausedTexFloatTimer) * PausedTexOffsetRange;
-            const float KeyboardScrollSpeed = 1024f;
-            if (settings.PlayerListScrollUp.Check)
-                scrollTarget -= KeyboardScrollSpeed * Engine.RawDeltaTime;
-            else if (settings.PlayerListScrollDown.Check)
-                scrollTarget += KeyboardScrollSpeed * Engine.RawDeltaTime;
-            scrollTarget = Math.Max(scrollTarget, 0);
-
-            float maxMove = Math.Max(Math.Abs(scrollTarget - scroll), 8f) * 8f * Engine.RawDeltaTime;
-            scroll = Calc.Approach(scroll, scrollTarget, maxMove);
-        }
+        // Visibility, focus and scrolling are controlled by PlayerListController.
     }
 
     // TODO this can still be optimized
