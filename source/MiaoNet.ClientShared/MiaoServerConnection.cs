@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
@@ -53,6 +54,11 @@ public sealed partial class MiaoServerConnection : IDisposable
         NetworkStream networkStream = new NetworkStream(socket);
         await networkStream.WriteAsync(Connection.HandshakeHead, token);
 
+        // on android this callback is invoked from java (SslStream.JavaProxy), and exceptions
+        // thrown across that boundary get swallowed there, so just remember the reason and
+        // return false, then throw it once we are back on the managed stack below
+        MiaoSslException? sslFailure = null;
+
 #if !USE_LOCALHOST_PFX
         var sslStream = new SslStream(networkStream, false, (sender, certificate, chain, errors) =>
         {
@@ -65,7 +71,8 @@ public sealed partial class MiaoServerConnection : IDisposable
                     for (int i = 0; i < chainStatus.Length; i++)
                         chainStatusFlags |= (chainStatus[i]).Status;
                 }
-                throw new MiaoSslException(errors, chainStatusFlags);
+                sslFailure = new MiaoSslException(errors, chainStatusFlags);
+                return false;
             }
             return true;
         });
@@ -90,7 +97,15 @@ public sealed partial class MiaoServerConnection : IDisposable
                 : X509RevocationMode.NoCheck
         };
 
-        await sslStream.AuthenticateAsClientAsync(options, token);
+        try
+        {
+            await sslStream.AuthenticateAsClientAsync(options, token);
+        }
+        catch (Exception) when (sslFailure is not null)
+        {
+            // on android what lands here is an AuthenticationException, the real reason is in sslFailure
+            ExceptionDispatchInfo.Capture(sslFailure).Throw();
+        }
 
         return new(socket, sslStream);
     }
